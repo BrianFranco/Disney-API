@@ -47,14 +47,15 @@ namespace Disney_API.Models
     }
     public class Usuario
     {
+        public int Id { get; set; }
         [Required]
         [EmailAddress]
         [MinLength(8)]
-        [Key]
         public string Email { get; set; }
         [Required]
         [MinLength(4)]
         [DataType(DataType.Password)]
         public string Contraseña { get; set; }
+        public string Token { get; set; }
     }
 }
