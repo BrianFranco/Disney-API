@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Disney_API.DTOs;
 
 namespace Disney_API.Controllers
 {
@@ -26,11 +27,24 @@ namespace Disney_API.Controllers
             _context = context;
         }
         [HttpGet]
-        public string Get([FromQuery] string name,[FromQuery]int age,[FromQuery]int idMovie)
+        public ActionResult<List<PersonajeListadoDTO>> Get([FromQuery] string name,[FromQuery]int age,[FromQuery]int idMovie)
         {
-            var cont = _context.Personaje.ToList(); 
-            string json = JsonSerializer.Serialize(from j in cont select new { nombre= j.Nombre,imagen = j.Imagen});
-            return json;
+            try
+            {
+                var cont = _context.Personaje.ToList();
+                List<PersonajeListadoDTO> listPersonaje = new List<PersonajeListadoDTO>();
+                if (name ==null && age == 0)
+                {
+                    listPersonaje.AddRange(from j in cont  select new PersonajeListadoDTO { Nombre = j.Nombre, Imagen = j.Imagen });
+                    return listPersonaje;
+                }
+                listPersonaje.AddRange(from j in cont where j.Nombre == name || j.Edad == age select new PersonajeListadoDTO { Nombre = j.Nombre, Imagen = j.Imagen });
+                return listPersonaje;
+            }
+            catch(Exception ex)
+            {
+                return NotFound(ex.Message);
+            }
          }
         [HttpGet("detalle/{id:int}")]
         public ActionResult<Personaje> DetallePersonaje(int id)
@@ -43,35 +57,50 @@ namespace Disney_API.Controllers
             return PersonajeEncontrado;
         }
         [HttpPost]
-        public string Post(Personaje personaje)
+        public async Task<ActionResult> Post(PersonajeCreateDTO newPersonaje)
         {
             try
             {
-                _context.Personaje.Add(personaje);
-                _context.SaveChanges();
-                return "Se creo exitosamente el Personaje.";
+                var personaje = new Personaje { Nombre=newPersonaje.Nombre,
+                                                Imagen=newPersonaje.Imagen,
+                                                Edad=newPersonaje.Edad,
+                                                Historia=newPersonaje.Historia,
+                                                Peso=newPersonaje.Peso};
+                await _context.Personaje.AddAsync(personaje);
+                await _context.SaveChangesAsync();
+                return Ok("Se creo exitosamente el Personaje.");
             }
             catch (Exception ex)
             {
-                return ex.Message;
+                return NotFound(ex.Message);
             }
         }
         [HttpPut]
-        public string Put(Personaje personaje)
+        public async Task<ActionResult> Put(PersonajeUpdateDTO Updatepersonaje)
         {
             try
             {
-                _context.Personaje.Update(personaje);
-                _context.SaveChanges();
-                return "Se modifico exitosamente el Personaje.";
+                Personaje personaje = new Personaje
+                {
+                    Id = Updatepersonaje.Id,
+                    Edad = Updatepersonaje.Edad,
+                    Historia = Updatepersonaje.Historia,
+                    Imagen = Updatepersonaje.Imagen,
+                    Nombre = Updatepersonaje.Nombre,
+                    Peso = Updatepersonaje.Peso
+                };
+
+                 _context.Personaje.Update(personaje);
+                await _context.SaveChangesAsync();
+                return Ok("Se modifico exitosamente el Personaje.");
             }
             catch (Exception ex)
             {
-                return ex.Message;
+                return NotFound(ex.Message);
             }
         }
         [HttpDelete]
-        public string Delete(int id)
+        public async Task<ActionResult> Delete(int id)
         {
             try
             {
@@ -79,17 +108,17 @@ namespace Disney_API.Controllers
                 if (DeletePersonaje!= null)
                 {
                     _context.Personaje.Remove(DeletePersonaje);
-                    _context.SaveChanges();
-                    return "Se elimino el personaje.";
+                    await _context.SaveChangesAsync();
+                    return Ok("Se elimino el personaje.");
                 }
                 else
                 {
-                    return "El personaje no fue encontrado o no existe.";
+                    return NotFound("El personaje no fue encontrado o no existe.");
                 }
             }
             catch (Exception ex)
             {
-                return ex.Message;
+                return NotFound(ex.Message);
             }
         }
 
