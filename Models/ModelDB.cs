@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Disney_API.Models
 {
@@ -44,18 +41,5 @@ namespace Disney_API.Models
         [Required]
         public string Imagen { get; set; }
         public ICollection<Pelicula> Peliculas { get; set; }
-    }
-    public class Usuario
-    {
-        public int Id { get; set; }
-        [Required]
-        [EmailAddress]
-        [MinLength(8)]
-        public string Email { get; set; }
-        [Required]
-        [MinLength(4)]
-        [DataType(DataType.Password)]
-        public string Contraseña { get; set; }
-        public string Token { get; set; }
     }
 }

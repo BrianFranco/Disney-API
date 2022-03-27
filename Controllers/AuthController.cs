@@ -1,83 +1,111 @@
-﻿using Disney_API.Models;
-using Microsoft.AspNetCore.Http;
+﻿using Disney_API.DTOs;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Disney_API.Controllers
 {
-    [Route("auth/login")]
+    
+    [Route("auth")]
     [ApiController]
-    public class LoginController : ControllerBase
+    public class AuthController : ControllerBase
     {
-        private readonly MyDBContext _context;
-        public LoginController(MyDBContext context)
+        private readonly UserManager<IdentityUser> userManager;
+        private readonly IConfiguration configuration;
+        private readonly SignInManager<IdentityUser> signInManager;
+
+        public AuthController(UserManager<IdentityUser> userManager,IConfiguration configuration,SignInManager<IdentityUser> signInManager)
         {
-            _context = context;
+            this.userManager = userManager;
+            this.configuration = configuration;
+            this.signInManager = signInManager;
         }
-        [HttpPost]
-        public string Post(string email, string contraseña)
+        [HttpPost("login")]
+        public async Task<ActionResult<AuthTokenDTO>> Login(AuthLoginDTO login)
         {
-            try
+            var result = await signInManager.PasswordSignInAsync(login.Email, login.Password, isPersistent: false, lockoutOnFailure: false);
+            if (result.Succeeded)
             {
-                if (ModelState.IsValid)
-                {
-                    var UserLogin = _context.Usuario.First(u => u.Email == email && u.Contraseña == contraseña);
-                    if (UserLogin != null)
-                    {
-                        UserLogin.Token = Guid.NewGuid().ToString();
-                        _context.Update(UserLogin);
-                        _context.SaveChanges();
-                        return "token:" + UserLogin.Token;
-                    }
-                    else
-                    {
-                        return "Email o Contraseña incorrecto.";
-                    }
-                }
-                else
-                {
-                    return "Ingrese valores validos.";
-                }
+                return ConstruirToken(login);
             }
-            catch (Exception ex)
+            else
             {
-                return ex.Message;
+                return BadRequest("Usuario o Contraseña incorrecto.");
             }
+        }
+        [HttpPost("register")]
+        public async Task<ActionResult<AuthTokenDTO>> Register(AuthRegisterDTO user)
+        {
+            var usuario = new IdentityUser
+            {
+                UserName = user.Email,
+                Email = user.Email
+            };
+            var result = await userManager.CreateAsync(usuario,user.Password);
+
+            if (result.Succeeded)
+            {
+                EnvioEmail ex = new EnvioEmail(user.Email, user.Nombre);
+                return ConstruirToken(new AuthLoginDTO
+                {
+                    Email=user.Email
+                });
+            }
+            else
+            {
+                return BadRequest(result.Errors);
+            }
+        }
+        private AuthTokenDTO ConstruirToken(AuthLoginDTO user)
+        {
+            var claims = new List<Claim>()
+            {
+                new Claim("email",user.Email),
+                new Claim("nombreClaim", "ValorClaim")
+            };
+            var llave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["llaveJwt"]));
+            var creds = new SigningCredentials(llave, SecurityAlgorithms.HmacSha256);
+            var expiracion = DateTime.UtcNow.AddDays(1);
+            var securityToken = new JwtSecurityToken(issuer:null,audience:null,claims:claims,expires:expiracion,signingCredentials:creds);
+            return new AuthTokenDTO()
+            {
+                Token = new JwtSecurityTokenHandler().WriteToken(securityToken),
+                Expiracion = expiracion
+            };
         }
     }
-    [Route("auth/register")]
-    [ApiController]
-    public class RegisterController : ControllerBase
+    internal class EnvioEmail
     {
-        private readonly MyDBContext _context;
-        public RegisterController(MyDBContext context)
+        static string EmailDestino;
+        static string NombreDestino;
+        public EnvioEmail(string emailDestino, string nombreDestino)
         {
-            _context = context;
+            EmailDestino = emailDestino;
+            NombreDestino = nombreDestino;
+            Execute().Wait();
         }
-        [HttpPost]
-        public string Post(Usuario user)
+        static async Task Execute()
         {
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    _context.Add(user);
-                    _context.SaveChanges();
-                    return "Usuario guardado correctamente.";
-                }
-                else
-                {
-                    return "Ingrese valores validos.";
-                }
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+            Environment.SetEnvironmentVariable("SENDGRID_API_KEY_API_DISNEY", "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");
+            var apiKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY_API_DISNEY");
+            var client = new SendGridClient(apiKey);
+            var from = new EmailAddress("brianfranco9466@gmail.com", "CHALLENGE BACKEND - C# .NET - API Disney");
+            var subject = "REGISTRO DE USUARIO EN API DISNEY";
+            var to = new EmailAddress(EmailDestino, NombreDestino);
+            var plainTextContent = "¡BIENVENIDO! \n Su registro en la aplicacion API Disney fue exitoso.\n Saludos.";
+            var htmlContent = "¡BIENVENIDO! \n Su registro en la aplicacion API Disney fue exitoso.\n Saludos.";
+            var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
+            await client.SendEmailAsync(msg);
         }
-
     }
 }

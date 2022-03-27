@@ -1,6 +1,7 @@
 ﻿using Disney_API.DTOs;
 using Disney_API.Models;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,7 @@ namespace Disney_API.Controllers
 {
     [Route("[controller]")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class MoviesController : ControllerBase
     {
         private readonly MyDBContext _context;
@@ -22,14 +24,14 @@ namespace Disney_API.Controllers
         public ActionResult<List<PeliculaListadoDTO>> Get([FromQuery] String name, [FromQuery] int genero, [FromQuery] string order)
         {
 
-                var pelicula = _context.Pelicula.ToList();
+            var pelicula = _context.Pelicula.ToList();
             List<PeliculaListadoDTO> listPeliculas = new List<PeliculaListadoDTO>();
-            if (order=="ASC")
+            if (order == "ASC")
             {
                 listPeliculas.AddRange(from p in pelicula orderby p.FechaCreacion ascending select new PeliculaListadoDTO { Titulo = p.Titulo, FechaCreacion = p.FechaCreacion, Imagen = p.Imagen });
                 return listPeliculas;
             }
-            else if (order=="DESC")
+            else if (order == "DESC")
             {
                 listPeliculas.AddRange(from p in pelicula orderby p.FechaCreacion descending select new PeliculaListadoDTO { Titulo = p.Titulo, FechaCreacion = p.FechaCreacion, Imagen = p.Imagen });
                 return listPeliculas;
@@ -40,12 +42,13 @@ namespace Disney_API.Controllers
         [HttpGet("detalle/{id:int}")]
         public ActionResult<Pelicula> Get(int id)
         {
-            return _context.Pelicula.FirstOrDefault(x=>x.Id==id);
+            return _context.Pelicula.FirstOrDefault(x => x.Id == id);
         }
         [HttpPost]
         public async Task<ActionResult> Post(PeliculaCreateDTO newPeli)
         {
-            var pelicula = new Pelicula { 
+            var pelicula = new Pelicula
+            {
                 Calificación = newPeli.Calificación,
                 FechaCreacion = newPeli.FechaCreacion,
                 Imagen = newPeli.Imagen,
@@ -60,11 +63,11 @@ namespace Disney_API.Controllers
         {
             var pelicula = new Pelicula
             {
-                Id=updatePeli.Id,
-                Calificación=updatePeli.Calificación,
-                FechaCreacion=updatePeli.FechaCreacion,
-                Imagen=updatePeli.Imagen,
-                Titulo=updatePeli.Titulo
+                Id = updatePeli.Id,
+                Calificación = updatePeli.Calificación,
+                FechaCreacion = updatePeli.FechaCreacion,
+                Imagen = updatePeli.Imagen,
+                Titulo = updatePeli.Titulo
             };
             _context.Pelicula.Update(pelicula);
             await _context.SaveChangesAsync();

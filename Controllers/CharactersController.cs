@@ -1,12 +1,12 @@
-﻿using Disney_API.Models;
-using Microsoft.AspNetCore.Http;
+﻿using Disney_API.DTOs;
+using Disney_API.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Text.Json;
-using Disney_API.DTOs;
 
 namespace Disney_API.Controllers
 {
@@ -19,6 +19,7 @@ namespace Disney_API.Controllers
 
     [Route("characters")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class CharactersController : ControllerBase
     {
         private readonly MyDBContext _context;
@@ -27,25 +28,25 @@ namespace Disney_API.Controllers
             _context = context;
         }
         [HttpGet]
-        public ActionResult<List<PersonajeListadoDTO>> Get([FromQuery] string name,[FromQuery]int age,[FromQuery]int idMovie)
+        public ActionResult<List<PersonajeListadoDTO>> Get([FromQuery] string name, [FromQuery] int age, [FromQuery] int idMovie)
         {
             try
             {
                 var cont = _context.Personaje.ToList();
                 List<PersonajeListadoDTO> listPersonaje = new List<PersonajeListadoDTO>();
-                if (name ==null && age == 0)
+                if (name == null && age == 0)
                 {
-                    listPersonaje.AddRange(from j in cont  select new PersonajeListadoDTO { Nombre = j.Nombre, Imagen = j.Imagen });
+                    listPersonaje.AddRange(from j in cont select new PersonajeListadoDTO { Nombre = j.Nombre, Imagen = j.Imagen });
                     return listPersonaje;
                 }
                 listPersonaje.AddRange(from j in cont where j.Nombre == name || j.Edad == age select new PersonajeListadoDTO { Nombre = j.Nombre, Imagen = j.Imagen });
                 return listPersonaje;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return NotFound(ex.Message);
             }
-         }
+        }
         [HttpGet("detalle/{id:int}")]
         public ActionResult<Personaje> DetallePersonaje(int id)
         {
@@ -61,11 +62,14 @@ namespace Disney_API.Controllers
         {
             try
             {
-                var personaje = new Personaje { Nombre=newPersonaje.Nombre,
-                                                Imagen=newPersonaje.Imagen,
-                                                Edad=newPersonaje.Edad,
-                                                Historia=newPersonaje.Historia,
-                                                Peso=newPersonaje.Peso};
+                var personaje = new Personaje
+                {
+                    Nombre = newPersonaje.Nombre,
+                    Imagen = newPersonaje.Imagen,
+                    Edad = newPersonaje.Edad,
+                    Historia = newPersonaje.Historia,
+                    Peso = newPersonaje.Peso
+                };
                 await _context.Personaje.AddAsync(personaje);
                 await _context.SaveChangesAsync();
                 return Ok("Se creo exitosamente el Personaje.");
@@ -90,7 +94,7 @@ namespace Disney_API.Controllers
                     Peso = Updatepersonaje.Peso
                 };
 
-                 _context.Personaje.Update(personaje);
+                _context.Personaje.Update(personaje);
                 await _context.SaveChangesAsync();
                 return Ok("Se modifico exitosamente el Personaje.");
             }
@@ -105,7 +109,7 @@ namespace Disney_API.Controllers
             try
             {
                 var DeletePersonaje = _context.Personaje.First(d => d.Id == id);
-                if (DeletePersonaje!= null)
+                if (DeletePersonaje != null)
                 {
                     _context.Personaje.Remove(DeletePersonaje);
                     await _context.SaveChangesAsync();
