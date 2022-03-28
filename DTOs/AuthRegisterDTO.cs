@@ -11,7 +11,7 @@ namespace Disney_API.DTOs
         public string Nombre { get; set; }
         [Required]
         [EmailAddress]
-        [MinLength(8)]
+        [MinLength(5)]
         public string Email { get; set; }
         [Required]
         [MinLength(4)]

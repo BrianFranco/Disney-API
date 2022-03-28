@@ -4,6 +4,7 @@ namespace Disney_API.DTOs
 {
     public class PersonajeUpdateDTO
     {
+        [Required]
         public int Id { get; set; }
         [Required]
         public string Imagen { get; set; }
@@ -15,5 +16,7 @@ namespace Disney_API.DTOs
         public float Peso { get; set; }
         [Required]
         public string Historia { get; set; }
+        [Required]
+        public int PeliculaId { get; set; }
     }
 }

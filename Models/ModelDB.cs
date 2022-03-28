@@ -17,6 +17,7 @@ namespace Disney_API.Models
         public float Peso { get; set; }
         [Required]
         public string Historia { get; set; }
+        [Required]
         public ICollection<Pelicula> Peliculas { get; set; }
     }
 
@@ -31,6 +32,10 @@ namespace Disney_API.Models
         public DateTime FechaCreacion { get; set; }
         [Required]
         public int Calificación { get; set; }
+        [Required]
+        public int GeneroId { get; set; }
+        [Required]
+        public Genero Genero { get; set; }
         public ICollection<Personaje> Personajes { get; set; }
     }
     public class Genero
@@ -40,6 +45,7 @@ namespace Disney_API.Models
         public string Nombre { get; set; }
         [Required]
         public string Imagen { get; set; }
+        [Required]
         public ICollection<Pelicula> Peliculas { get; set; }
     }
 }

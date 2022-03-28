@@ -11,12 +11,6 @@ using System.Threading.Tasks;
 namespace Disney_API.Controllers
 {
 
-    public class ViewModelPersonaje
-    {
-        public string Nombre;
-        public string Imagen;
-    }
-
     [Route("characters")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -28,29 +22,34 @@ namespace Disney_API.Controllers
             _context = context;
         }
         [HttpGet]
-        public ActionResult<List<PersonajeListadoDTO>> Get([FromQuery] string name, [FromQuery] int age, [FromQuery] int idMovie)
+        public ActionResult<IEnumerable<PersonajeListadoDTO>> Get([FromQuery] string name, [FromQuery] int age, [FromQuery] int idMovie)
         {
             try
             {
-                var cont = _context.Personaje.ToList();
-                List<PersonajeListadoDTO> listPersonaje = new List<PersonajeListadoDTO>();
-                if (name == null && age == 0)
+                var listPersonaje = _context.Personaje.ToList();
+                if (name != null)
                 {
-                    listPersonaje.AddRange(from j in cont select new PersonajeListadoDTO { Nombre = j.Nombre, Imagen = j.Imagen });
-                    return listPersonaje;
+                    listPersonaje = (from list in listPersonaje where list.Nombre.ToLower().Contains(name.ToLower()) select list).ToList();
                 }
-                listPersonaje.AddRange(from j in cont where j.Nombre == name || j.Edad == age select new PersonajeListadoDTO { Nombre = j.Nombre, Imagen = j.Imagen });
-                return listPersonaje;
+                if (age != 0)
+                {
+                    listPersonaje = (from list in listPersonaje where list.Edad == age select list).ToList();
+                }
+                if (listPersonaje.Count==0 || listPersonaje == null)
+                {
+                    return NotFound();
+                }
+                return Ok(from list in listPersonaje select new PersonajeListadoDTO { Imagen = list.Imagen, Nombre = list.Nombre });
             }
             catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                return BadRequest(ex.Message);
             }
         }
         [HttpGet("detalle/{id:int}")]
         public ActionResult<Personaje> DetallePersonaje(int id)
         {
-            var PersonajeEncontrado = _context.Personaje.FirstOrDefault(x => x.Id == id);
+            var PersonajeEncontrado = _context.Personaje.FirstOrDefault(x=>x.Id==id);
             if (PersonajeEncontrado == null)
             {
                 return NotFound();
@@ -68,8 +67,9 @@ namespace Disney_API.Controllers
                     Imagen = newPersonaje.Imagen,
                     Edad = newPersonaje.Edad,
                     Historia = newPersonaje.Historia,
-                    Peso = newPersonaje.Peso
+                    Peso = newPersonaje.Peso,
                 };
+                personaje.Peliculas = _context.Pelicula.Where(x => x.Id == newPersonaje.PeliculaId).ToList();
                 await _context.Personaje.AddAsync(personaje);
                 await _context.SaveChangesAsync();
                 return Ok("Se creo exitosamente el Personaje.");
@@ -93,7 +93,7 @@ namespace Disney_API.Controllers
                     Nombre = Updatepersonaje.Nombre,
                     Peso = Updatepersonaje.Peso
                 };
-
+                personaje.Peliculas = _context.Pelicula.Where(x => x.Id == Updatepersonaje.PeliculaId).ToList();
                 _context.Personaje.Update(personaje);
                 await _context.SaveChangesAsync();
                 return Ok("Se modifico exitosamente el Personaje.");
@@ -108,7 +108,7 @@ namespace Disney_API.Controllers
         {
             try
             {
-                var DeletePersonaje = _context.Personaje.First(d => d.Id == id);
+                var DeletePersonaje = _context.Personaje.FirstOrDefault(d => d.Id == id);
                 if (DeletePersonaje != null)
                 {
                     _context.Personaje.Remove(DeletePersonaje);
@@ -117,7 +117,7 @@ namespace Disney_API.Controllers
                 }
                 else
                 {
-                    return NotFound("El personaje no fue encontrado o no existe.");
+                    return BadRequest("El personaje no fue encontrado o no existe.");
                 }
             }
             catch (Exception ex)
@@ -125,7 +125,5 @@ namespace Disney_API.Controllers
                 return NotFound(ex.Message);
             }
         }
-
-
     }
 }

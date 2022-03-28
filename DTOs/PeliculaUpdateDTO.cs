@@ -15,5 +15,7 @@ namespace Disney_API.DTOs
         public DateTime FechaCreacion { get; set; }
         [Required]
         public int Calificación { get; set; }
+        [Required]
+        public int GeneroId { get; set; }
     }
 }

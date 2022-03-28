@@ -55,7 +55,7 @@ namespace Disney_API.Controllers
 
             if (result.Succeeded)
             {
-                EnvioEmail ex = new EnvioEmail(user.Email, user.Nombre);
+                //EnvioEmail ex = new EnvioEmail(user.Email, user.Nombre);
                 return ConstruirToken(new AuthLoginDTO
                 {
                     Email=user.Email
@@ -96,7 +96,6 @@ namespace Disney_API.Controllers
         }
         static async Task Execute()
         {
-            Environment.SetEnvironmentVariable("SENDGRID_API_KEY_API_DISNEY", "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");
             var apiKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY_API_DISNEY");
             var client = new SendGridClient(apiKey);
             var from = new EmailAddress("brianfranco9466@gmail.com", "CHALLENGE BACKEND - C# .NET - API Disney");

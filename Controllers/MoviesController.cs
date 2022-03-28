@@ -23,26 +23,47 @@ namespace Disney_API.Controllers
         [HttpGet]
         public ActionResult<List<PeliculaListadoDTO>> Get([FromQuery] String name, [FromQuery] int genero, [FromQuery] string order)
         {
-
-            var pelicula = _context.Pelicula.ToList();
-            List<PeliculaListadoDTO> listPeliculas = new List<PeliculaListadoDTO>();
-            if (order == "ASC")
+            try
             {
-                listPeliculas.AddRange(from p in pelicula orderby p.FechaCreacion ascending select new PeliculaListadoDTO { Titulo = p.Titulo, FechaCreacion = p.FechaCreacion, Imagen = p.Imagen });
-                return listPeliculas;
+                var pelicula = _context.Pelicula.ToList();
+                if (name != null)
+                {
+                    pelicula = (from peli in pelicula where peli.Titulo.ToLower().Contains(name.ToLower()) select peli).ToList();  
+                }
+                if(order != null)
+                {
+                    if (order == "ASC")
+                    {
+                        pelicula = pelicula.OrderBy(ord => ord.FechaCreacion).ToList();
+                    }else if (order == "DESC")
+                    {
+                        pelicula = pelicula.OrderByDescending(ord => ord.FechaCreacion).ToList();
+                    }
+                }
+                if (genero != 0)
+                {
+                    pelicula = (from peli in pelicula where peli.GeneroId == genero select peli).ToList();
+                }
+                return (from peli in pelicula select new PeliculaListadoDTO {
+                    Titulo = peli.Titulo, 
+                    Imagen = peli.Imagen,
+                    FechaCreacion = peli.FechaCreacion 
+                }).ToList();
             }
-            else if (order == "DESC")
+            catch (Exception ex)
             {
-                listPeliculas.AddRange(from p in pelicula orderby p.FechaCreacion descending select new PeliculaListadoDTO { Titulo = p.Titulo, FechaCreacion = p.FechaCreacion, Imagen = p.Imagen });
-                return listPeliculas;
+                return BadRequest(ex.Message);
             }
-            listPeliculas.AddRange(from p in pelicula select new PeliculaListadoDTO { Titulo = p.Titulo, FechaCreacion = p.FechaCreacion, Imagen = p.Imagen });
-            return listPeliculas;
         }
         [HttpGet("detalle/{id:int}")]
         public ActionResult<Pelicula> Get(int id)
         {
-            return _context.Pelicula.FirstOrDefault(x => x.Id == id);
+            var pelicula = _context.Pelicula.FirstOrDefault(x => x.Id == id);
+            if (pelicula == null)
+            {
+                return NotFound();
+            }
+            return pelicula;
         }
         [HttpPost]
         public async Task<ActionResult> Post(PeliculaCreateDTO newPeli)
@@ -52,11 +73,17 @@ namespace Disney_API.Controllers
                 Calificación = newPeli.Calificación,
                 FechaCreacion = newPeli.FechaCreacion,
                 Imagen = newPeli.Imagen,
-                Titulo = newPeli.Titulo
+                Titulo = newPeli.Titulo,
+                GeneroId = newPeli.GeneroId
             };
+            pelicula.Genero = _context.Genero.FirstOrDefault(x => x.Id == newPeli.GeneroId);
+            if (pelicula.Genero == null)
+            {
+                return BadRequest("Debe ingresar un IdGenero valido.");
+            }
             await _context.Pelicula.AddAsync(pelicula);
             await _context.SaveChangesAsync();
-            return Ok();
+            return Ok($"Se creo correctamente la pelicula {pelicula.Titulo}");
         }
         [HttpPut]
         public async Task<ActionResult> Put(PeliculaUpdateDTO updatePeli)
@@ -67,11 +94,17 @@ namespace Disney_API.Controllers
                 Calificación = updatePeli.Calificación,
                 FechaCreacion = updatePeli.FechaCreacion,
                 Imagen = updatePeli.Imagen,
-                Titulo = updatePeli.Titulo
+                Titulo = updatePeli.Titulo,
+                GeneroId = updatePeli.GeneroId
             };
+            pelicula.Genero = _context.Genero.FirstOrDefault(x => x.Id == updatePeli.GeneroId);
+            if (pelicula.Genero == null)
+            {
+                return BadRequest("Debe ingresar un IdGenero valido.");
+            }
             _context.Pelicula.Update(pelicula);
             await _context.SaveChangesAsync();
-            return Ok();
+            return Ok($"Se modifico correctamente la pelicula{pelicula.Titulo}");
         }
         [HttpDelete("{id=int}")]
         public async Task<ActionResult> Delete(int id)
@@ -79,7 +112,7 @@ namespace Disney_API.Controllers
             Pelicula pelicula = _context.Pelicula.FirstOrDefault(x => x.Id == id);
             if (pelicula == null)
             {
-                return NotFound();
+                return BadRequest("No se encontro la pelicula indicada.");
             }
             _context.Pelicula.Remove(pelicula);
             await _context.SaveChangesAsync();
