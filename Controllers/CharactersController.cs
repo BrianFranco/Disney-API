@@ -3,11 +3,11 @@ using Disney_API.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
 namespace Disney_API.Controllers
 {
 
@@ -26,7 +26,7 @@ namespace Disney_API.Controllers
         {
             try
             {
-                var listPersonaje = _context.Personaje.ToList();
+                var listPersonaje = _context.Personaje.Include(x => x.Peliculas).ToList();
                 if (name != null)
                 {
                     listPersonaje = (from list in listPersonaje where list.Nombre.ToLower().Contains(name.ToLower()) select list).ToList();
@@ -35,7 +35,11 @@ namespace Disney_API.Controllers
                 {
                     listPersonaje = (from list in listPersonaje where list.Edad == age select list).ToList();
                 }
-                if (listPersonaje.Count==0 || listPersonaje == null)
+                if (idMovie != 0)
+                {
+                    listPersonaje = listPersonaje.Where(x => x.Peliculas.Any(x => x.Id == idMovie)).ToList();
+                }
+                if (listPersonaje.Count == 0 || listPersonaje == null)
                 {
                     return NotFound();
                 }
@@ -47,14 +51,33 @@ namespace Disney_API.Controllers
             }
         }
         [HttpGet("detalle/{id:int}")]
-        public ActionResult<Personaje> DetallePersonaje(int id)
+        public ActionResult<PersonajeDetalleDTO> DetallePersonaje(int id)
         {
-            var PersonajeEncontrado = _context.Personaje.FirstOrDefault(x=>x.Id==id);
-            if (PersonajeEncontrado == null)
+            
+            var personaje = _context.Personaje.Include(x => x.Peliculas).FirstOrDefault(x=>x.Id==id);
+            if (personaje == null)
             {
                 return NotFound();
             }
-            return PersonajeEncontrado;
+            return new PersonajeDetalleDTO
+            {
+                Edad = personaje.Edad,
+                Peso = personaje.Peso,
+                Imagen = personaje.Imagen,
+                Historia = personaje.Historia,
+                Id = personaje.Id,
+                Nombre = personaje.Nombre,
+                Peliculas = (from peli in personaje.Peliculas select new PeliculaDTO
+                {
+                    Id = peli.Id,
+                    Calificación = peli.Calificación,
+                    FechaCreacion = peli.FechaCreacion,
+                    Imagen = peli.Imagen,
+                    Titulo = peli.Titulo,
+                    Genero = _context.Genero.Select(x => new GeneroDTO {Id=x.Id,Imagen=x.Imagen,Nombre=x.Nombre }).FirstOrDefault(x => x.Id == peli.GeneroId)
+                }).ToList()
+            };
+                
         }
         [HttpPost]
         public async Task<ActionResult> Post(PersonajeCreateDTO newPersonaje)

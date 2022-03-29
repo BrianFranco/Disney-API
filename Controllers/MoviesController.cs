@@ -3,6 +3,7 @@ using Disney_API.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,6 +45,12 @@ namespace Disney_API.Controllers
                 {
                     pelicula = (from peli in pelicula where peli.GeneroId == genero select peli).ToList();
                 }
+
+                if (pelicula == null || pelicula.Count == 0)
+                {
+                    return NotFound();
+                }
+
                 return (from peli in pelicula select new PeliculaListadoDTO {
                     Titulo = peli.Titulo, 
                     Imagen = peli.Imagen,
@@ -56,14 +63,36 @@ namespace Disney_API.Controllers
             }
         }
         [HttpGet("detalle/{id:int}")]
-        public ActionResult<Pelicula> Get(int id)
+        public ActionResult<PeliculaDetalleDTO> Get(int id)
         {
-            var pelicula = _context.Pelicula.FirstOrDefault(x => x.Id == id);
+            var pelicula = _context.Pelicula.Include(x => x.Personajes).Include(x=>x.Genero).FirstOrDefault(x => x.Id == id);
             if (pelicula == null)
             {
                 return NotFound();
             }
-            return pelicula;
+            return new PeliculaDetalleDTO
+            {
+                Id = pelicula.Id,
+                Imagen = pelicula.Imagen,
+                Calificación = pelicula.Calificación,
+                Titulo = pelicula.Titulo,
+                FechaCreacion = pelicula.FechaCreacion,
+                Genero = new GeneroDTO
+                {
+                    Id = pelicula.Genero.Id,
+                    Nombre = pelicula.Genero.Nombre,
+                    Imagen = pelicula.Imagen
+                },
+                Personajes= (from pers in pelicula.Personajes select new PersonajeDTO
+                {
+                    Id=pers.Id,
+                    Nombre=pers.Nombre,
+                    Edad=pers.Edad,
+                    Historia=pers.Historia,
+                    Imagen=pers.Imagen,
+                    Peso=pers.Peso
+                }).ToList()
+            };
         }
         [HttpPost]
         public async Task<ActionResult> Post(PeliculaCreateDTO newPeli)
