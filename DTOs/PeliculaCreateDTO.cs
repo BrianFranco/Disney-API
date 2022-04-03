@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Disney_API.DTOs
@@ -15,5 +16,6 @@ namespace Disney_API.DTOs
         public int Calificación { get; set; }
         [Required]
         public int GeneroId { get; set; }
+        public List<int> Personajes { get; set; }
     }
 }

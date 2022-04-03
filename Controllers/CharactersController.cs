@@ -92,7 +92,18 @@ namespace Disney_API.Controllers
                     Historia = newPersonaje.Historia,
                     Peso = newPersonaje.Peso,
                 };
-                personaje.Peliculas = _context.Pelicula.Where(x => x.Id == newPersonaje.PeliculaId).ToList();
+                if (newPersonaje.Peliculas != null)
+                {
+                    foreach (int idpeli in newPersonaje.Peliculas)
+                    {
+                        var peli = await _context.Pelicula.FirstOrDefaultAsync(x => x.Id == idpeli);
+                        if (peli == null)
+                        {
+                            return BadRequest("Ingreso un id de pelicula no valido o incorrecto.");
+                        }
+                        personaje.Peliculas.Add(peli);
+                    }
+                }
                 await _context.Personaje.AddAsync(personaje);
                 await _context.SaveChangesAsync();
                 return Ok("Se creo exitosamente el Personaje.");
@@ -107,6 +118,11 @@ namespace Disney_API.Controllers
         {
             try
             {
+                var peli = await _context.Personaje.FirstOrDefaultAsync(x => x.Id==Updatepersonaje.Id );
+                if (peli == null)
+                {
+                    return NotFound("Id de personaje no existente.");
+                }
                 Personaje personaje = new Personaje
                 {
                     Id = Updatepersonaje.Id,
@@ -116,7 +132,20 @@ namespace Disney_API.Controllers
                     Nombre = Updatepersonaje.Nombre,
                     Peso = Updatepersonaje.Peso
                 };
-                personaje.Peliculas = _context.Pelicula.Where(x => x.Id == Updatepersonaje.PeliculaId).ToList();
+                if (Updatepersonaje.Peliculas.Count< peli.Peliculas.Count)
+                {
+                    return BadRequest();
+                }
+
+                foreach (int idpeli in Updatepersonaje.Peliculas)
+                {
+                    var pe = await _context.Pelicula.FirstOrDefaultAsync(x => x.Id == idpeli);
+                    if (pe == null)
+                    {
+                        return BadRequest("Ingreso un id de pelicula no valido o incorrecto.");
+                    }
+                    personaje.Peliculas.Add(pe);
+                }
                 _context.Personaje.Update(personaje);
                 await _context.SaveChangesAsync();
                 return Ok("Se modifico exitosamente el Personaje.");

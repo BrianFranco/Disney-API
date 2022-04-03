@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace Disney_API.DTOs
 {
@@ -15,6 +16,6 @@ namespace Disney_API.DTOs
         [Required]
         public string Historia { get; set; }
         [Required]
-        public int PeliculaId { get; set; }
+        public List<int> Peliculas { get; set; } 
     }
 }

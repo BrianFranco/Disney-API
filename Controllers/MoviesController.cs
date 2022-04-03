@@ -110,6 +110,17 @@ namespace Disney_API.Controllers
             {
                 return BadRequest("Debe ingresar un IdGenero valido.");
             }
+            if (newPeli != null)
+            {
+                foreach (int idPersonaje in newPeli.Personajes)
+                {
+                    var p = await _context.Personaje.FirstOrDefaultAsync(x => x.Id == idPersonaje);
+                    if ( p == null){
+                        return BadRequest($"Uno de los personajes ingresados no existe o aun no esta cargado ID: {idPersonaje}");
+                    }
+                    pelicula.Personajes.Add(p);
+               }
+            }
             await _context.Pelicula.AddAsync(pelicula);
             await _context.SaveChangesAsync();
             return Ok($"Se creo correctamente la pelicula {pelicula.Titulo}");
@@ -130,6 +141,23 @@ namespace Disney_API.Controllers
             if (pelicula.Genero == null)
             {
                 return BadRequest("Debe ingresar un IdGenero valido.");
+            }
+            if (updatePeli.Personajes != null)
+            {
+                var peli = _context.Pelicula.Include(x => x.Personajes).ToList();
+                if (updatePeli.Personajes.Count >= peli.Count)
+                {
+                    return BadRequest("Ingreso menos personajes de los ya guardados.");
+                }
+                foreach (int idPersonaje in updatePeli.Personajes)
+                {
+                    var p = await _context.Personaje.FirstOrDefaultAsync(x => x.Id == idPersonaje);
+                    if (p == null)
+                    {
+                        return BadRequest($"Uno de los personajes ingresados no existe o aun no esta cargado ID: {idPersonaje}");
+                    }
+                    pelicula.Personajes.Add(p);
+                }
             }
             _context.Pelicula.Update(pelicula);
             await _context.SaveChangesAsync();
